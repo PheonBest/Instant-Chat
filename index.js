@@ -10,9 +10,15 @@ server.listen(port, function () {
 });
 
 app.use(express.static(path.join(__dirname, 'public')));
+var allMessages = [];
 
 io.sockets.on('connection', (socket)=>{
+	socket.emit('history', allMessages);
 	socket.on('messageReached',(message)=>{
 		socket.broadcast.emit('message', message);
+		if (allMessages.length<50){
+			allMessages.splice(0, 1);
+			allMessages.push(message);
+		}
 	});
 });

@@ -2,26 +2,15 @@
 <html>
 <head>
 	<title>Socket.io is easy</title>
+	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"/>
 	<style>
-	h1 {
-		color:#333;
-		text-align:center;
-		background-color: silver;
-		border-radius: 15px 50px 30px;
-		padding: 20px;
-		text-shadow: 5px;
-	}
-	p{
-		background-color: silver;
-		font-size: 1.3em;
-		color:#333;
-	}
-	input {margin-left:20px;}
-
+	input {color:white;background-color:#333;}
 	</style>
 </head>
-<body>
+<body class="w3-center">
 	<h1>Hey !</h1>
+	<input type="text" id="chat" class="w3-input" placeholder="Écrivez ici pour discuter">
+	<button onclick="sendM()">Envoyer</button>
 	<script src="/socket.io/socket.io.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
@@ -31,17 +20,11 @@
 
 	function setup() {
 		noCanvas();
-		input = createInput();
-		input.position(20,100);
-		button = createButton('submit');
-		button.position(input.x + input.width, 100);
-		button.mousePressed(sendM);
-		console.log(sizeN);
 	}
 	
 	function sendM(){
-		var toChat = input.value();
-		input.value('');
+		var toChat = document.getElementById("chat").value;
+		document.getElementById("chat").value = '';
 		if (name === ''){
 			name = prompt('Quel est votre nom ?');
 		}
@@ -49,9 +32,14 @@
 		createP(name+': '+toChat);
 	}
 
-	socket.on('message',(message)=>{
+	socket.on('history',(allMessages)=>{
+		console.log(allMessages);
+		for (var i=0;i<allMessages.length;i++){
+			createP(allMessages[i]);
+		}
+	})
+	.on('message',(message)=>{
 		createP(message);
-
 	});
 
 	</script>
