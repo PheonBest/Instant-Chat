@@ -1,45 +1,209 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<title>Socket.io is easy</title>
+	<title>Shootbox</title>
 	<link rel="stylesheet" href="https://www.w3schools.com/w3css/4/w3.css"/>
-	<style>
-	input {color:white;background-color:#333;}
-	</style>
+	<link rel="stylesheet" href="css/design.css?rndstr=<%= getRandomStr() %>" type="text/css"/>
+	<script src="js/cookie.js"></script>
 </head>
 <body class="w3-center">
-	<h1>Hey !</h1>
-	<input type="text" id="chat" class="w3-input" placeholder="Écrivez ici pour discuter">
-	<button onclick="sendM()">Envoyer</button>
+	<h1>Shootbox</h1>
+	<script id="pseudoInput" type="text/html">
+		<input type="text" id="pseudo" class="w3-input" placeholder="Entrez votre pseudonyme">
+		<button onclick="pseudoM()" id="pseudoM">Envoyer</button>
+	</script>
+	<script id="messageInput" type="text/html">
+		<textarea rows="4" cols="50" type="text" id="chat" class="w3-input" placeholder="Écrivez ici pour discuter"></textarea>
+		<button onclick="sendM()" id="sendM" class="w3-button">Envoyer</button>
+	</script>
+	
+	<div id="messagesContainer"></div>
+	<div id="targetElement"></div>
+	<p id="errorPargraph" style="color: red;"></p>
+
 	<script src="/socket.io/socket.io.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/p5.min.js"></script>
 	<script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/0.7.2/addons/p5.dom.min.js"></script>
 	<script>var socket = io();
 	var sizeN = 30;
-	var name = '';
-
+	var delOnClick = false;
+	var username = getCookie('username');
+	
 	function setup() {
 		noCanvas();
+
+		if (username != "") {
+			socket.emit('isUsernameAvailable',username);
+		}
+		else {
+			createDivInput('username');
+		}
+	}
+
+	function createDivInput(type) {
+		console.log("type is "+type);
+		if (type == 'username'){
+			console.log('DivUsername');
+			var div = document.createElement('div');
+			div.setAttribute("class", "input-container");
+			div.innerHTML = document.getElementById('pseudoInput').innerHTML;
+			document.getElementById('targetElement').appendChild(div)
+			// Get the input field
+			var input = document.getElementById("pseudo");
+
+			// Execute a function when the user releases a key on the keyboard
+			input.addEventListener("keyup", function(event) {
+			  // Number 13 is the "Enter" key on the keyboard
+			  if (event.keyCode === 13) {
+				// Cancel the default action, if needed
+				event.preventDefault();
+				// Trigger the button element with a click
+				document.getElementById("pseudoM").click();
+			  }
+			});
+
+			input.onclick = function(){
+				if (delOnClick == true) {
+					input.value = '';
+					delOnClick = false;
+				}
+			};
+		}
+		else if (type == 'message') {
+			console.log('DivMessage');
+			var div = document.createElement('div');
+			div.setAttribute("class", "input-container");
+			div.innerHTML = document.getElementById('messageInput').innerHTML;
+			document.getElementById('targetElement').appendChild(div)
+			
+			// Get the input field
+			var input = document.getElementById("chat");
+
+			// Execute a function when the user releases a key on the keyboard
+			input.addEventListener("keyup", function(event) {
+			  // Number 13 is the "Enter" key on the keyboard
+			  if (event.keyCode === 13) {
+				// Cancel the default action, if needed
+				event.preventDefault();
+				// Trigger the button element with a click
+				document.getElementById("sendM").click();
+			  }
+			});
+		}
 	}
 	
+	function pseudoM(){
+		var toPseudo = document.getElementById("pseudo").value;
+		document.getElementById("pseudo").value = '';
+		socket.emit('pseudoReached',toPseudo);
+	}
+
 	function sendM(){
 		var toChat = document.getElementById("chat").value;
 		document.getElementById("chat").value = '';
-		if (name === ''){
-			name = prompt('Quel est votre nom ?');
+		if (username === ''){
+			username = prompt('Quel est votre nom ?');
 		}
-		socket.emit('messageReached',name+': '+toChat);
-		createP(name+': '+toChat);
+		socket.emit('messageReached',username+': '+toChat);
+		var i;
+		for (var i=0;i<toChat.length;i++){
+			if (toChat[i] !== ' '){
+				if (toChat.length<500){
+					createP(username+': '+toChat).parent("messagesContainer");
+					document.getElementById("messagesContainer").scrollTop = 10000;
+				}
+				break
+			}
+		}
 	}
 
 	socket.on('history',(allMessages)=>{
-		console.log(allMessages);
+		var i;
 		for (var i=0;i<allMessages.length;i++){
-			createP(allMessages[i]);
+			createP(allMessages[i]).parent("messagesContainer");
+		}
+		document.getElementById("messagesContainer").scrollTop = 10000;
+	})
+	.on('pseudo',(state,pseudo)=>{
+		if (state == 0) {
+			document.getElementById("pseudo").value = pseudo;
+			w3-button
+			var btn = document.getElementById("pseudoM");
+			btn.classList.remove('w3-button');
+			btn.classList.add('redBg');
+			setTimeout(() => {
+				btn.classList.add('w3-button');
+				btn.classList.remove('redBg');
+			}, 1000);
+			delOnClick = true;
+		}
+		else if (state == 1) {
+			username = pseudo;
+			setCookie('username', username, 365);
+			var element = document.getElementById("targetElement");
+			while (element.firstChild) {
+			  element.removeChild(element.firstChild);
+			}
+			var div = document.createElement('div');
+			div.setAttribute("class", "input-container");
+			div.innerHTML = document.getElementById('messageInput').innerHTML;
+			document.getElementById('targetElement').appendChild(div);
+			
+			var input = document.getElementById("chat");
+			input.focus(); 
+			var btn = document.getElementById("sendM");
+			// Execute a function when the user releases a key on the keyboard
+			input.addEventListener("keyup", function(event) {
+			  // Number 13 is the "Enter" key on the keyboard
+			  if (event.keyCode === 13) {
+				// Cancel the default action, if needed
+				event.preventDefault();
+				// Trigger the button element with a click
+				btn.click();
+			  }
+			});
+
+			btn.classList.remove('w3-button');
+			btn.classList.add('greenBg');
+			setTimeout(() => {
+				btn.classList.add('w3-button');
+				btn.classList.remove('greenBg');
+			}, 1000);
 		}
 	})
+	.on('messageError',(message, errorMessage)=>{
+		console.log(errorMessage);
+		var errorItem = document.getElementById("errorPargraph");
+		errorItem.innerHTML = errorMessage;
+		setTimeout(() => {
+			errorItem.innerHTML = "";
+		}, 5000);
+		
+		if (message !== "") {
+			document.getElementById("chat").value = message;
+		}
+		var btn = document.getElementById("sendM");
+		btn.classList.remove('w3-button');
+		btn.classList.add('redBg');
+		setTimeout(() => {
+			btn.classList.add('w3-button');
+			btn.classList.remove('redBg');
+		}, 1000);
+	})
 	.on('message',(message)=>{
-		createP(message);
+		console.log(message);
+		createP(message).parent("messagesContainer");
+		document.getElementById("messagesContainer").scrollTop = 10000;
+	})
+	.on('usernameAvailable',(username)=>{
+		if (username != "") {
+			console.log('messageDiv');
+			createDivInput('message');
+		}
+		else {
+			console.log('usernameDiv');
+			createDivInput('username');
+		}
 	});
 
 	</script>
